@@ -8,8 +8,13 @@ __pycache__/
 .installed.cfg
 *.egg
 
-
 .DS_Store
 Thumbs.db
 
 debug_page.png
+
+# Personal input/output — kept out of version control
+urls.txt
+direct_links.txt
+failed_urls.txt
+downloads/

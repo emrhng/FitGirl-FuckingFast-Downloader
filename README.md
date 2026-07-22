@@ -1,56 +1,150 @@
 # FitGirl FuckingFast Downloader
 
-FitGirl repack paste linklerindeki tüm dosyaları otomatik indirme aracı.
+Bulk-download every file from a FitGirl repack **fuckingfast.co** paste, with
+original filenames restored. Works on Windows, macOS and Linux.
 
-## Nasıl Çalışır?
+*Türkçe açıklama aşağıda.*
 
-1. **FitGirl paste linkini** tarayıcıda aç, tüm `fuckingfast.co` linklerini kopyala
-2. `urls.txt` dosyasına yapıştır (her satıra bir link)
-3. `debug.py` çalıştır → Cloudflare aşılır, direkt download linkleri `direct_links.txt`ye yazılır
-4. `download_renamed.py` çalıştır → Tüm dosyalar orijinal isimleriyle `E:\f` klasörüne iner
+---
 
-## Gereksinimler
+## How it works
+
+fuckingfast.co puts every download behind a Cloudflare Turnstile challenge, so
+you can't grab the files with a plain HTTP request. The tool solves this in two
+steps:
+
+1. **`extract_links.py`** opens a real Chromium browser, passes the Turnstile
+   challenge for each link, and writes the direct download URLs to
+   `direct_links.txt`.
+2. **`download.py`** downloads those direct URLs in parallel and saves each file
+   under its original name (`.part001.rar`, etc.).
+
+## Requirements
 
 ```bash
-pip install requests beautifulsoup4 playwright
+pip install -r requirements.txt
 python -m playwright install chromium
 ```
 
-## Kullanım
+Python 3.8+ is required.
 
-### Adım 1: Linkleri hazırla
+## Usage
 
-FitGirl paste sayfasındaki tüm linkleri `urls.txt` dosyasına kopyala.
+### 1. Add your links
 
-### Adım 2: Direkt linkleri çıkar
-
-```bash
-python debug.py
-```
-
-Bu aşama her link için Chromium açıp Cloudflare Turnstile'ı çözer. 
-186 link yaklaşık 25-30 dakika sürer.
-
-### Adım 3: İndir
+Copy `urls.example.txt` to `urls.txt` and paste your fuckingfast.co links into
+it (one per line):
 
 ```bash
-python download_renamed.py
+cp urls.example.txt urls.txt      # Windows: copy urls.example.txt urls.txt
 ```
 
-Tüm dosyalar `E:\f` klasörüne orijinal isimleriyle (`.partXXX.rar`) iner. 
-8 paralel indirme, ~15-20 dakika.
+Open the FitGirl paste page in your browser, copy every `fuckingfast.co` link,
+and paste them into `urls.txt`.
 
-### İndirme klasörünü değiştirmek için
+### 2. Extract the direct links
 
-`download_renamed.py` içindeki `OUTPUT_DIR` değişkenini değiştir.
+```bash
+python extract_links.py
+```
 
-## İndirme Sonrası
+A Chromium window opens and solves the Turnstile challenge for each link.
+Expect roughly 8–10 seconds per link. Results are written to `direct_links.txt`
+as they succeed, so it's safe to stop and resume.
 
-Tüm `.rar` dosyalarını WinRAR ile aç, içinden `setup.exe` çıkacak.
+Re-run only the links that failed:
 
-## NOT
+```bash
+python extract_links.py --retry-failed
+```
 
-- fuckingfast.co Cloudflare Turnstile kullanır, bu yüzden Playwright/Chromium şart
-- `direct_links.txt` bir kere oluştu mu, tekrar `debug.py` çalıştırmaya gerek yok
-- `download_renamed.py` zaten inmiş dosyaları skip eder, yarım kalanları tekrar indirir
-- 16 thread rate limiting yiyor, 8 thread optimal
+### 3. Download
+
+```bash
+python download.py
+```
+
+Files are saved to a `downloads/` folder next to the scripts, using 8 parallel
+downloads. Already-downloaded files are skipped, so you can re-run it to resume.
+
+## Options
+
+Both scripts take command-line options — no need to edit the code.
+
+**extract_links.py**
+
+| Option | Description | Default |
+| --- | --- | --- |
+| `-i, --input` | Input file with fuckingfast.co links | `urls.txt` |
+| `-o, --output` | Output file for direct links | `direct_links.txt` |
+| `--retry-failed` | Re-run only the URLs in the failed file | off |
+| `--headless` | Run the browser hidden (may fail Turnstile) | off |
+| `--wait` | Seconds to wait for the Turnstile challenge | `6` |
+
+**download.py**
+
+| Option | Description | Default |
+| --- | --- | --- |
+| `-o, --output-dir` | Folder to save files into | `downloads` |
+| `-w, --workers` | Number of parallel downloads | `8` |
+| `-i, --input` | File with direct links | `direct_links.txt` |
+| `--no-rename` | Keep the hashed filenames | off |
+
+Example — download to a custom folder with 4 workers:
+
+```bash
+python download.py -o "D:/Games/Spider-Man" -w 4
+```
+
+## After downloading
+
+Open the `.rar` files with WinRAR / 7-Zip and run the extracted `setup.exe`.
+
+## Notes
+
+- The browser must be visible (not headless) for the Turnstile challenge to
+  pass reliably, so run `extract_links.py` on a machine with a desktop.
+- Once `direct_links.txt` exists you don't need to run `extract_links.py`
+  again — the direct links stay valid for a while.
+- More than ~8 parallel downloads tends to hit rate limiting; 8 is a good
+  default.
+
+---
+
+## Türkçe
+
+FitGirl repack **fuckingfast.co** paste linklerindeki tüm dosyaları, orijinal
+isimleriyle toplu indirir. Windows, macOS ve Linux'ta çalışır.
+
+### Nasıl çalışır?
+
+fuckingfast.co her linki Cloudflare Turnstile'ın arkasına koyar, bu yüzden
+dosyaları düz bir HTTP isteğiyle alamazsın. Araç bunu iki adımda çözer:
+
+1. **`extract_links.py`** gerçek bir Chromium tarayıcı açar, her link için
+   Turnstile'ı geçer ve direkt indirme linklerini `direct_links.txt`'ye yazar.
+2. **`download.py`** bu linkleri paralel olarak indirir ve her dosyayı orijinal
+   ismiyle kaydeder.
+
+### Kurulum
+
+```bash
+pip install -r requirements.txt
+python -m playwright install chromium
+```
+
+### Kullanım
+
+1. `urls.example.txt` dosyasını `urls.txt` olarak kopyala ve fuckingfast.co
+   linklerini (her satıra bir tane) içine yapıştır.
+2. `python extract_links.py` çalıştır → tarayıcı açılır, direkt linkler
+   `direct_links.txt`'ye çıkar. Başarısız olanları `python extract_links.py
+   --retry-failed` ile tekrar dene.
+3. `python download.py` çalıştır → dosyalar `downloads/` klasörüne iner.
+   Yarım kalanları atlar, tekrar çalıştırınca kaldığı yerden devam eder.
+
+İndirme klasörünü değiştirmek için: `python download.py -o "D:/Oyunlar"`
+
+### İndirme sonrası
+
+Tüm `.rar` dosyalarını WinRAR / 7-Zip ile aç, çıkan `setup.exe`'yi çalıştır.
