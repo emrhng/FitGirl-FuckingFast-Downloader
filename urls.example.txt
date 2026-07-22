@@ -1,0 +1,12 @@
+# Paste your fuckingfast.co links here, one per line, then save this file as urls.txt
+#
+# 1. Open the FitGirl repack paste page in your browser.
+# 2. Copy every fuckingfast.co link.
+# 3. Paste them below (lines starting with # are ignored).
+#
+# The part after "#" in each link is the original filename and is used to
+# restore proper names when downloading. Keep it if you can.
+#
+# Example (these are not real links):
+# https://fuckingfast.co/abc123def456#Some_Game_--_fitgirl-repacks.site_--_.part001.rar
+# https://fuckingfast.co/ghi789jkl012#Some_Game_--_fitgirl-repacks.site_--_.part002.rar
