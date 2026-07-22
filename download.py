@@ -1,10 +1,9 @@
 """
 Download all files listed in direct_links.txt using parallel downloads.
 
-Files are saved with their original names (e.g. Game_--_.part001.rar) by
-mapping the hashed direct-link filenames back to the names in urls.txt.
-Already-downloaded files with a matching size are skipped, so the download
-is resumable — just run it again.
+Files are saved with the original names that extract_links.py recorded next
+to each direct link. Already-downloaded files with a matching size are
+skipped, so the download is resumable — just run it again.
 
 Usage:
     python download.py                        # -> ./downloads, 8 workers
@@ -34,52 +33,33 @@ HEADERS = {
 }
 
 
-def build_rename_map(urls_file, direct_links_file):
-    """Map hashed direct-link filenames to original names from urls.txt."""
-    original_names = []
-    with open(urls_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            if '#' in line:
-                fragment = line.split('#', 1)[1]
-                parts = fragment.split('--_')
-                name = parts[-1] if parts else fragment
-                name = name.replace('%20', ' ')
-                original_names.append(name)
-            else:
-                original_names.append(None)
-
-    hash_names = []
-    with open(direct_links_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            hash_names.append(os.path.basename(line.split('?')[0]))
-
-    rename_map = {}
-    for orig, hash_name in zip(original_names, hash_names):
-        if orig and hash_name:
-            rename_map[hash_name] = orig
-    return rename_map
+def hashed_name(url):
+    """The server-side (hashed) filename portion of a direct link."""
+    return os.path.basename(url.split('?')[0])
 
 
-def build_download_list(direct_links_file, urls_file, rename):
-    """Build a list of (url, output_filename) pairs."""
-    rename_map = {}
-    if rename and urls_file and os.path.exists(urls_file):
-        rename_map = build_rename_map(urls_file, direct_links_file)
+def build_download_list(direct_links_file, rename):
+    """Build a list of (url, output_filename) pairs.
 
+    extract_links.py writes each line as "<direct_url>\\t<original_name>".
+    We read the name straight from the line, so filenames are always paired
+    with the correct URL regardless of line order. Lines without a name (e.g.
+    an older links file) fall back to the hashed filename.
+    """
     result = []
     with open(direct_links_file, 'r', encoding='utf-8') as f:
         for line in f:
-            url = line.strip()
+            line = line.rstrip('\n')
+            if not line.strip():
+                continue
+            if '\t' in line:
+                url, name = line.split('\t', 1)
+                url, name = url.strip(), name.strip()
+            else:
+                url, name = line.strip(), ''
             if not url:
                 continue
-            hash_name = os.path.basename(url.split('?')[0])
-            output_name = rename_map.get(hash_name, hash_name)
+            output_name = hashed_name(url) if (not rename or not name) else name
             result.append((url, output_name))
     return result
 
@@ -139,10 +119,6 @@ def parse_args():
         help="Directory to save files into (default: ./downloads)"
     )
     parser.add_argument(
-        '-u', '--urls', default='urls.txt',
-        help="Original links file used to restore filenames (default: urls.txt)"
-    )
-    parser.add_argument(
         '-w', '--workers', type=int, default=8,
         help="Number of parallel downloads (default: 8)"
     )
@@ -160,9 +136,7 @@ def main():
         print(f"[!] {args.input} not found. Run extract_links.py first.")
         sys.exit(1)
 
-    download_list = build_download_list(
-        args.input, args.urls, rename=not args.no_rename
-    )
+    download_list = build_download_list(args.input, rename=not args.no_rename)
     if not download_list:
         print("[!] No files to download.")
         sys.exit(1)

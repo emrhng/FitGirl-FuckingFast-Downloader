@@ -16,6 +16,7 @@ import os
 import re
 import sys
 import time
+from urllib.parse import unquote
 
 try:
     from playwright.sync_api import sync_playwright
@@ -50,14 +51,24 @@ def read_urls(filepath):
     return urls
 
 
-def get_filename(url):
-    """Extract a human-readable filename from the URL fragment for display."""
+def original_filename(url):
+    """Derive the original filename from the URL fragment.
+
+    fuckingfast paste links carry the original name after '#', e.g.
+    '...#Game_--_fitgirl-repacks.site_--_.part001.rar'. We keep the full
+    decoded fragment so the name stays descriptive and unique, then strip
+    characters that are illegal in filenames on Windows.
+    """
     if '#' in url:
-        fragment = url.split('#', 1)[1]
-        parts = fragment.split('--_')
-        name = parts[-1] if parts else fragment
-        return name.replace('%20', ' ')
-    return url.split('/')[-1]
+        name = unquote(url.split('#', 1)[1])
+    else:
+        name = url.rstrip('/').split('/')[-1]
+
+    name = name.replace('\\', '_').replace('/', '_')
+    for ch in '<>:"|?*':
+        name = name.replace(ch, '_')
+    name = name.strip().lstrip('.')  # avoid empty names / hidden dotfiles
+    return name or 'file'
 
 
 def process_url(browser, url, wait_seconds):
@@ -222,16 +233,19 @@ def main():
         )
 
         # Append each capture immediately so a crash never loses progress.
+        # Each line is "<direct_url>\t<original_filename>" so download.py can
+        # restore names without relying on line order (which breaks whenever a
+        # link fails or is appended via --retry-failed).
         with open(args.output, output_mode, encoding='utf-8') as out_f:
             for i, url in enumerate(urls, 1):
-                filename = get_filename(url)
+                filename = original_filename(url)
                 print(f"[{i}/{total}] {filename}", end=" ... ", flush=True)
 
                 try:
                     link = process_url(browser, url, args.wait)
                     if link:
                         results.append(link)
-                        out_f.write(link + '\n')
+                        out_f.write(f"{link}\t{filename}\n")
                         out_f.flush()
                         print("[OK]")
                     else:

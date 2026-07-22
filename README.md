@@ -45,7 +45,9 @@ Run either script with `--help` to see all options.
 
 - Run `extract_links.py` on a machine with a desktop — the browser must be
   visible for the Turnstile challenge to pass reliably.
-- Once `direct_links.txt` exists you don't need to run `extract_links.py` again.
+- The direct links in `direct_links.txt` stay valid for a while, so you can
+  reuse them — but if downloads start failing, they've expired; re-run
+  `extract_links.py` to refresh them.
 - When done, extract the downloaded `.rar` files with WinRAR / 7-Zip.
 
 ## Türkçe
