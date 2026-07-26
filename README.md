@@ -1,69 +1,106 @@
 # FitGirl FuckingFast Downloader
 
-Bulk-download every file from a FitGirl repack **fuckingfast.co** paste, with
-original filenames restored. Works on Windows, macOS and Linux.
+One script. Run it, paste the link of the page that holds the
+**fuckingfast.co** links, and it downloads the whole repack for you — setup,
+link scraping, Cloudflare Turnstile bypass and parallel downloading included.
 
-fuckingfast.co hides downloads behind a Cloudflare Turnstile challenge, so the
-tool works in two steps: `extract_links.py` opens a real browser to pass the
-challenge and collect the direct links, then `download.py` downloads them in
-parallel.
+```bash
+python fitgirl.py
+```
 
-## Setup
+```
+==============================================================
+ FitGirl FuckingFast Downloader
+==============================================================
+ Paste the link of the page that holds the fuckingfast.co links
+ (a pastebin link, a FitGirl paste page, ...) and press ENTER.
+
+ Link: https://pastebin.com/XXXXXXXX
+```
+
+That's all you have to do. On the first run it installs what it needs
+(`requests`, `playwright` and Chromium) by itself.
+
+## What it does
+
+1. Reads the page you gave it and collects every `fuckingfast.co` link.
+2. Opens Chromium and passes the Turnstile challenge for each link. Leave the
+   window alone — it closes itself.
+3. Downloads the files **while** the remaining links are still being resolved,
+   using the original filenames, into `downloads/<game name>/`.
+
+## Requirements
+
+Python 3.8 or newer. Nothing else — packages install themselves on first run.
+
+Prefer to install them yourself, or hit a permissions error?
 
 ```bash
 pip install -r requirements.txt
 python -m playwright install chromium
 ```
 
-Python 3.8+ required.
+## Resuming
 
-## Usage
-
-```bash
-cp urls.example.txt urls.txt   # paste your fuckingfast.co links into urls.txt
-python extract_links.py        # solve Turnstile, write direct_links.txt
-python download.py             # download everything into ./downloads
-```
-
-Both steps are resumable — just run them again to continue. Re-run only the
-failed links with `python extract_links.py --retry-failed`.
+Stop it any time with `Ctrl+C` and run it again — finished files are skipped
+and a half-downloaded file continues where it left off. Failed or unresolved
+links are retried automatically, and running the program again picks up
+whatever is still missing.
 
 ## Options
 
-Set these on the command line; no need to edit the code.
+You never need these, but they're there:
 
-| Script | Option | Description | Default |
-| --- | --- | --- | --- |
-| extract_links.py | `-i, --input` | Input links file | `urls.txt` |
-| extract_links.py | `--retry-failed` | Re-run only failed URLs | off |
-| download.py | `-o, --output-dir` | Where to save files | `downloads` |
-| download.py | `-w, --workers` | Parallel downloads | `8` |
+| Option | Description | Default |
+| --- | --- | --- |
+| `-o, --output-dir` | Where to save files | `downloads/<game name>` |
+| `-w, --workers` | Parallel downloads | `6` |
+| `--wait` | Seconds given to the Turnstile challenge | `6` |
+| `--no-rename` | Keep the server's hashed filenames | off |
 
-Run either script with `--help` to see all options.
+You can also skip the prompt, or feed it a file that already contains links:
+
+```bash
+python fitgirl.py https://pastebin.com/XXXXXXXX
+python fitgirl.py links.txt -o "D:/Games" -w 8
+```
 
 ## Notes
 
-- Run `extract_links.py` on a machine with a desktop — the browser must be
-  visible for the Turnstile challenge to pass reliably.
-- The direct links in `direct_links.txt` stay valid for a while, so you can
-  reuse them — but if downloads start failing, they've expired; re-run
-  `extract_links.py` to refresh them.
-- When done, extract the downloaded `.rar` files with WinRAR / 7-Zip.
+- Chromium has to be **visible** for the Turnstile challenge to pass, so run
+  this on a machine with a desktop.
+- More than ~8 parallel downloads tends to trigger rate limiting.
+- When it's done, extract the `.rar` files with WinRAR or 7-Zip.
+
+---
 
 ## Türkçe
 
-fuckingfast.co linklerindeki tüm dosyaları orijinal isimleriyle toplu indirir.
+Tek dosya. Çalıştır, fuckingfast.co linklerinin bulunduğu sayfanın linkini
+yapıştır, gerisini kendi yapar — kurulum, link bulma, Cloudflare Turnstile
+aşma ve paralel indirme dahil.
 
 ```bash
-pip install -r requirements.txt
-python -m playwright install chromium
-
-cp urls.example.txt urls.txt   # linkleri urls.txt içine yapıştır
-python extract_links.py        # Turnstile geçilir, direct_links.txt oluşur
-python download.py             # dosyalar ./downloads klasörüne iner
+python fitgirl.py
 ```
 
-İki adım da kaldığı yerden devam eder, tekrar çalıştırman yeterli. Başarısız
-linkler için: `python extract_links.py --retry-failed`. İndirme klasörünü
-değiştirmek için: `python download.py -o "D:/Oyunlar"`. İndikten sonra `.rar`
-dosyalarını WinRAR / 7-Zip ile aç.
+Sonra sadece linki yapıştırıp ENTER'a bas. İlk çalıştırmada gerekenleri
+(`requests`, `playwright`, Chromium) kendisi kurar. **Python 3.8+** dışında
+hiçbir şeye gerek yok.
+
+**Ne yapıyor:** Verdiğin sayfadaki tüm `fuckingfast.co` linklerini toplar →
+Chromium açıp her biri için Turnstile'ı geçer (pencereye dokunma, kendi
+kapanır) → dosyaları orijinal isimleriyle `downloads/<oyun adı>/` klasörüne
+indirir. Kalan linkler çözülürken indirme aynı anda sürer, o yüzden bekleme
+süresi neredeyse yarıya iner.
+
+**Yarıda kalırsa:** `Ctrl+C` ile durdurup tekrar çalıştır — inmiş dosyalar
+atlanır, yarım kalan dosya kaldığı yerden devam eder. Başarısız linkler
+otomatik tekrar denenir.
+
+**İsteğe bağlı:** İndirme klasörünü değiştirmek için
+`python fitgirl.py -o "D:/Oyunlar"`, paralel indirme sayısı için `-w 8`.
+Linki komut satırından da verebilirsin:
+`python fitgirl.py https://pastebin.com/XXXXXXXX`
+
+İndikten sonra `.rar` dosyalarını WinRAR / 7-Zip ile aç.

@@ -13,8 +13,9 @@ Thumbs.db
 
 debug_page.png
 
-# Personal input/output — kept out of version control
+# Downloads and partial files stay out of version control
+downloads/
+*.part
 urls.txt
 direct_links.txt
 failed_urls.txt
-downloads/
